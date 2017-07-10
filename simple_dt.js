@@ -311,14 +311,15 @@ sdfO['h'] = sdfO['H'] = sdfO['k'] = sdfO['K'] = sdfO['j'] = sdfO['J'] = sdfO['C'
 sdfO['m'] = ['minute', 0, 0, 1];
 //--- second: sSA -------------------------------------------------------
 sdfO['s'] = ['second', 0, 0, 1];
-sdfFnSig['S'] = function(d, pat, utc) { // fractional second (limit: up to 3 digits)
-	var ms1 = 1000 + d.getMilliseconds(), l = pat.length;
-	return ('' + ms1).substr(1, l);
+sdfFnSig['S'] = function(d, pat, utc) { // fractional second
+	var ms1 = 1000 + d.getMilliseconds(), l = pat.length, s0 = '' + ms1;
+	if (l > 3) s0 = s0.padEnd(l+1, '0');
+	return s0.substr(1, l);
 };
 sdfFnSig['A'] = function(d, pat, utc) { // milliseconds in day
 	var ms = +d;
 	if (utc) ms -= (d.getTimezoneOffset() * 60000); // TZ offset: minutes -> ms
-	return '' + (ms % 86400000);
+	return ('' + (ms % 86400000)).padStart(pat.length, '0');
 };
 // sep ???
 //--- zone: zZOvVXx -----------------------------------------------------
@@ -410,10 +411,10 @@ SimpleDateFormat.prototype.makeAF = function(pat) {
  */
 SimpleDateFormat.prototype.makeDTF = function(pat, f1) {
 	// prep options
-	var o = {}, utc = this.utc;
+	var o = {}, utc = this.utc, sig = pat[0];
 	if (f1) {
 		// len=6 only allowed for weekdays, do not use DTF for that
-		if (pat.length > 5) return null;
+		if (pat.length > 5 && sig != 'S' && sig != 'A') return null;
 		if (!SimpleDateFormat.sdf2dtfO(pat, o)) return null;
 	} else {
 		SimpleDateFormat.dtfOptions(pat, o);
@@ -423,7 +424,7 @@ SimpleDateFormat.prototype.makeDTF = function(pat, f1) {
 	var fn, dtf = new Intl.DateTimeFormat(this.getLocales(o), o);
 	if (f1) { // not auto-formatting
 		// some formatters need some more work...
-		var sig = pat[0], dayEraVtz = "vVzGabB".indexOf(sig) >= 0; // day period, era or verbose timezone
+		var dayEraVtz = "vVzGabB".indexOf(sig) >= 0; // day period, era or verbose timezone
 		if (dayEraVtz) {
 			var part = sdfO[sig][0];
 			if (hasF2P) {
@@ -553,8 +554,9 @@ SimpleDateFormat.prototype.getFmt1Fn = function(pat1) {
  * @returns {dateFmtFn}
  */
 SimpleDateFormat.prototype.getPatFn = function(pat1) {
-	var fn, utc = this.utc;
-	if (pat1.length > 5) { // weekday: 6-len e, E or c
+	var fn, utc = this.utc, sig = pat1[0];
+	if (pat1.length > 5 && 'eEc'.indexOf(sig) >= 0) {
+		// weekday: 6-len e, E or c
 		var fShort = this.getFmt1Fn(pat1.substr(0,3));
 		if (fShort(new Date()).length > 2) {
 			fn = function(d) { return fShort(d).substr(0,2); };
@@ -566,7 +568,7 @@ SimpleDateFormat.prototype.getPatFn = function(pat1) {
 		if (fnSdf) {
 			fn = function(d) { return fnSdf(d, pat1, utc); };
 		} else {
-			fnSdf = sdfFnSig[ pat1[0] ];
+			fnSdf = sdfFnSig[sig];
 			fn = fnSdf && function(d) { return fnSdf(d, pat1, utc); };
 		}
 	}
