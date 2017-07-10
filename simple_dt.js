@@ -16,7 +16,9 @@ Intl.SimpleDateFormat = SimpleDateFormat;
 
 var formatters = {};
 //@DBG@ SimpleDateFormat.formatters = formatters;
-SimpleDateFormat.get = function(locale, utc) {
+
+/** @static */
+Intl.SimpleDateFormat.get = function(locale, utc) {
 	var key = (locale || 'default');
 	if (utc) key += ':utc';
 	return formatters[key] || (formatters[key] = new SimpleDateFormat(locale, utc));
