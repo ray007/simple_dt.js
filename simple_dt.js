@@ -272,11 +272,7 @@ sdfFnSig['w'] = function(d, pat, utc) { // week of year
 	return fw;
 };
 sdfFnSig['W'] = function(d, pat, utc) { // week of month - first dirty approx
-	var dw = utc ? d.getUTCDay() : d.getDay(), dm = (utc ? d.getUTCDate() : d.getDate()) - 1,
-			w0 = ~~(dm/7), d1wd = (dw - dm%7 + 7)%7;
-	if (dm%7 > 7-d1wd) w0++; // (dm > (7 - d1wd)) w0++;
-	// TODO: find and fix algorithm for this !!!
-	return '' + w0;
+	return '?'; // better none than wrong, this needs locale data <- TODO !!!
 };
 //--- day: dDFg ---------------------------------------------------------
 sdfO['d'] = ['day', 0, 0, 1];
