@@ -441,7 +441,7 @@ SimpleDateFormat.prototype.makeDTF = function(pat, f1) {
 					return v0.replace(/\s*\d+[^\w\s]*/g, '').trim();
 				}.bind(dtf);
 			}
-		} else { // check some numerics: hours, minutes or seconds
+		} else { // check some numerics: hours, minutes or seconds - or years!
 			var showHours = 'hHkK'.indexOf(sig) >= 0;
 			// hour formatters are quite special - move out of here?
 			if (showHours) {
@@ -460,6 +460,17 @@ SimpleDateFormat.prototype.makeDTF = function(pat, f1) {
 				// internet explorer has a problem with minutes and seconds
 				// see https://github.com/Microsoft/ChakraCore/issues/1223
 				if (isNaN(dtf.format(new Date()))) return null;
+				if (pat.length > 1) {
+					// 2-digit minutes or seconds
+					fn = function(d) {
+						var v = +this.format(d);
+						return ((v < 10) ? '0' : '') + v;
+					}.bind(dtf);
+				}
+			}
+			else if (pat.length == 5 && (sig == 'y' || sig == 'Y')) {
+				// ??? use NumberFormat if negative years are fixed upstream ???
+				fn = function(d) { return this.format(d).padStart(5, '0'); }.bind(dtf);
 			}
 		}
 	}
