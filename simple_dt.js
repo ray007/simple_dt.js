@@ -429,11 +429,11 @@ SimpleDateFormat.prototype.makeDTF = function(pat, f1) {
 			var part = sdfO[sig][0];
 			if (hasF2P) {
 				if (part == 'period') part = 'dayperiod';
-				fn = function(d) {
-					var fParts = dtf['formatToParts'](d),
+				fn = function(part, d) {
+					var fParts = this['formatToParts'](d),
 						r0 = fParts.find(function(pp, i) { return pp['type'] == part; });
 					return r0 && r0['value'];
-				};
+				}.bind(dtf, part);
 			} else { // try to extract text from longer string
 				fn = function(d) {
 					var v0 = this.format(d);
