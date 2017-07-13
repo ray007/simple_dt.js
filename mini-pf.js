@@ -1,3 +1,10 @@
+//--- Object ----------------------------------------------------------------
+
+if (!Object.assign) {
+	//Object.assign = $.extend;
+	Object.assign = function(dst, src) { return /** @type {!Object} */ ($.extend.apply(null, arguments)); };
+}
+
 //--- String ----------------------------------------------------------------
 
 if (!String.prototype.trim) { // ??? only very old IE ???
