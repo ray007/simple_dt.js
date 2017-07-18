@@ -1,8 +1,7 @@
 //--- Object ----------------------------------------------------------------
 
 if (!Object.assign) {
-	//Object.assign = $.extend;
-	Object.assign = function(dst, src) { return /** @type {!Object} */ ($.extend.apply(null, arguments)); };
+	Object.assign = $.extend;
 }
 
 //--- String ----------------------------------------------------------------
@@ -40,6 +39,19 @@ if (!String.prototype.padEnd) {
 	String.prototype.padEnd = function padStart(tLen, padS) {
 		tLen -= this.length;
 		return (tLen > 0) ? (this + _repeatTo(padS || ' ', tLen)) : this;
+	};
+}
+
+if (!String.prototype.startsWith) {
+	String.prototype.startsWith = function(sub) {
+		return this.lastIndexOf(sub, 0) === 0;
+	};
+}
+
+if (!String.prototype.endsWith) {
+	String.prototype.endsWith = function(sub) {
+		var l0 = this.length, l1 = sub && sub.length || 0, dl = l0 - l1;
+		return (dl >= 0) && (this.indexOf(sub, dl) == dl);
 	};
 }
 
