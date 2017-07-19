@@ -14,11 +14,14 @@ This relies in part on the availability of `strftime` and `sprintf` and new (pol
 Contains several mini-polyfills for ES6 and beyond stuff not available in current browsers.
 Partially implemented by use of jQuery functions
 
+- Object.assign
 - String
   - trim
   - repeat
   - padStart
   - padEnd
+  - startsWith
+  - endsWith
 - Array
   - find
   - findIndex
