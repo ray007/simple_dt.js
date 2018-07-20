@@ -427,7 +427,7 @@ SimpleDateFormat.prototype.makeDTF = function(pat, f1) {
 				if (part == 'period') part = 'dayperiod';
 				fn = function(part, d) {
 					var fParts = this['formatToParts'](d),
-						r0 = fParts.find(function(pp, i) { return pp['type'] == part; });
+						r0 = fParts.find(function(pp, i) { return pp['type'].toLowerCase() == part; });
 					return r0 && r0['value'];
 				}.bind(dtf, part);
 			} else { // try to extract text from longer string
