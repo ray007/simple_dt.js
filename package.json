@@ -1,0 +1,25 @@
+{
+  "name": "simple_dt",
+  "version": "0.1.0",
+  "description": "Date and time formatting in browser with ICU patterns",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ray007/simple_dt.js.git"
+  },
+  "keywords": [
+    "date",
+    "format",
+    "icu",
+    "browser"
+  ],
+  "author": "Raimund Bauer <ray007@gmx.net>",
+  "license": "LGPL-2.1",
+  "bugs": {
+    "url": "https://github.com/ray007/simple_dt.js/issues"
+  },
+  "homepage": "https://github.com/ray007/simple_dt.js#readme"
+}
