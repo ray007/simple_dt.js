@@ -15,10 +15,9 @@ var SimpleDateFormat = function(locale, utc) {
 Intl.SimpleDateFormat = SimpleDateFormat;
 
 var formatters = {};
-//@DBG@ SimpleDateFormat.formatters = formatters;
 
 /** @static */
-Intl.SimpleDateFormat.get = function(locale, utc) {
+SimpleDateFormat.get = function(locale, utc) {
 	var key = (locale || 'default');
 	if (utc) key += ':utc';
 	return formatters[key] || (formatters[key] = new SimpleDateFormat(locale, utc));
@@ -111,15 +110,14 @@ SimpleDateFormat.prototype.mkPatternFormatter = function(pat) {
 			fmtFn = function(d) {
 				var s = '', hasFmt = 0;
 				fmtParts.forEach(function(x, i) {
-					if (x instanceof Function) x = x(d); // use sub-formatter
-					else if (x.indexOf('%') >= 0) hasFmt++; // count %
+					if (x instanceof Function)
+						x = x(d); // use sub-formatter
 					s += x;
 				});
-				return hasFmt ? strftime(s, d) : s;
+				return s;
 			};
 		} else { // length == 1
-			var f0 = fmtParts[0];
-			fmtFn = (f0 instanceof Function) ? f0 : this.makeSTF(f0);
+			fmtFn = fmtParts[0];
 		}
 	}
 	return fmtFn;
@@ -132,115 +130,11 @@ SimpleDateFormat.prototype.mkPatternFormatter = function(pat) {
  * @returns {string}
  */
 SimpleDateFormat.prototype.getLocales = function(o) {
-	var prj = lweb.DM.activeProject;
-	return this.locale || prj.getLocale();
-};
-
-var sdfData = {};
-//@DBG@ lweb.sdfData = sdfData;
-//--- conversion: SimpleDateFormat -> strftime() ----------------------------
-sdfData.st = {}; // st -> store all StrfTime related stuff
-var sdfSig = sdfData.st.sig = {}, sdfPat = sdfData.st.pat = {};
-//--- era: G - n/a with strftime --------------------------------------------
-//--- year: yYuUr -----------------------------------------------------------
-sdfSig['y'] = sdfSig['Y'] = function(pat) { return (pat.length > 1) ? '%y' : '%Y'; };
-sdfSig['u'] = sdfSig['U'] = sdfSig['r'] = '%Y'; // to avoid errors
-//--- quarter: Qq - n/a with strftime ---------------------------------------
-sdfSig['q'] = sdfSig['Q'] = null;
-//--- month: MLl ------------------------------------------------------------
-sdfSig['l'] = '%m'; // "l" - deprecated
-sdfPat['M'] = sdfPat['L'] = '%-m';
-sdfPat['MM'] = sdfPat['LL'] = '%m';
-sdfPat['MMM'] = sdfPat['LLL'] = '%b';
-sdfPat['MMMM'] = sdfPat['LLLL'] = '%B';
-// 5 letters -> narrow (5 char only)
-sdfPat['MMMMM'] = sdfPat['LLLLL'] = null;
-//--- week: wW --------------------------------------------------------------
-sdfSig['w'] = '%U'; // %W (%V) - should be 2 formatters for 'w' and 'ww'
-sdfSig['W'] = null; // week on month
-//--- day: dDFg -------------------------------------------------------------
-sdfPat['d'] = '%-d';
-sdfPat['dd'] = '%d';
-sdfSig['D'] = function(pat) { return (pat.length > 1) ? '%j' : '%-j'; }; // not exactly, but close enough
-sdfSig['F'] = null; // day of week in month
-sdfSig['g'] = null; // julian day
-//--- weekday: Eec ----------------------------------------------------------
-sdfSig['E'] = function(pat) { return (pat.length == 4) ? '%A' : '%a'; };
-sdfSig['e'] = sdfSig['c'] = function(pat) {
-	var pl = pat.length;
-	return (pl <= 2) ? '%w' : ((pl == 4) ? '%A' : '%a');
-};
-//--- period: abB -----------------------------------------------------------
-sdfSig['a'] = sdfSig['b'] = sdfSig['B'] = '%p'; // ??? %P if 3-char ???
-//--- hour: hHkKjJC ---------------------------------------------------------
-sdfPat['h'] = '%-I';
-sdfPat['hh'] = '%I';
-sdfPat['H'] = '%-H';
-sdfPat['HH'] = '%H';
-sdfSig['k'] = '%k'; // not quite: hours should be 1-24 <- TODO
-sdfSig['K'] = '%l'; // or "I", not quite: hours should be zero-based (0-11) <- TODO
-sdfPat['j'] = sdfPat['h'];
-sdfSig['j'] = function(pat) { return (pat.length > 1) ? '%H' : '%-H'; }; // locale hours
-sdfSig['J'] = sdfSig['j'];
-sdfSig['C'] = sdfSig['j'];
-//--- minute: m -------------------------------------------------------------
-sdfPat['m'] = '%-M';
-sdfPat['mm'] = '%M';
-//--- seconds: sSA ----------------------------------------------------------
-sdfPat['s'] = '%-S';
-sdfPat['ss'] = '%S';
-sdfSig['S'] = null; // fractional second
-sdfSig['A'] = null; // milliseconds in day
-// sep ???
-//--- zone: zZOvVXx ---------------------------------------------------------
-sdfSig['z'] = sdfSig['v'] = sdfSig['V'] = '%Z';
-sdfSig['Z'] = sdfSig['O'] = sdfSig['X'] = sdfSig['x'] = '%z';
-//--- double % to preserve them ---------------------------------------------
-sdfSig['%'] = function(pat) { return pat + pat; };
-
-/**
- * convert single format-specifier for SimpleDateFormat for strftime use
- * @private
- * @param {string} pat1
- * @returns {string}
- */
-SimpleDateFormat.sdf2st = function(pat1) {
-	var sig = pat1[0], stf = sdfPat[pat1] || sdfSig[sig];
-	if (stf && (stf instanceof Function))
-		stf = stf(pat1);
-	return stf;
-};
-
-/**
- * get strftime formatter for single SDF pattern
- * @private
- * @param {string} pat1
- * @returns {dateFmtFn}
- */
-SimpleDateFormat.prototype.getFmt1ST = function(pat1) {
-	var fmt = SimpleDateFormat.sdf2st(pat1);
-	return /** @type {dateFmtFn} */ (fmt && this.makeSTF(fmt));
-};
-
-/**
- * make strftime based formatter for given strftime format
- * @private
- * @param {string} fmt strftime format string
- * @returns {!dateFmtFn}
- */
-SimpleDateFormat.prototype.makeSTF = function(fmt) {
-	var fn;
-	if (fmt.indexOf('%') >= 0) {
-		var utc = this.utc;
-		fn = function(d) { return d.strftime(fmt, utc); };
-	} else { // no strftime placeholder, create dummy formatter
-		fn = function(d) { return this; }.bind(fmt);
-	}
-	return fn;
+	return this.locale || (typeof navigator != 'undefined' ? navigator.language : 'en-US');
 };
 
 // helper objects to decide on the right formatter
-var dtfData = sdfData.dtf = {};
+var dtfData = {};
 var dtfStyles = dtfData.styles = ['numeric', '2-digit', 'short', 'long', 'narrow'],
 	sdfO = dtfData.sig = {}, sdfFnSig = dtfData.sigFn = {}, sdfFnPat = dtfData.patFn = {};
 //--- era: G ------------------------------------------------------------
@@ -253,9 +147,7 @@ sdfFnSig['Q'] = sdfFnSig['q'] = function(d, pat, utc) {
 	var m = utc ? d.getUTCMonth() : d.getMonth(), q = 1 + ~~(m/3), s;
 	var pads = ['', '0', 'Q', null, ''], l = pat.length;
 	if (l == 4) {
-		var dd = new Date(); // abuse strftime's %o formatter
-		dd.setDate(q);
-		s = dd.strftime('%o') + ' quarter'; // TODO: localize
+		s = q + '. quarter'; // TODO: localize / use ordinal suffix
 	} else {
 		s = pads[l-1] + q;
 	}
@@ -266,10 +158,21 @@ sdfO['M'] = sdfO['L'] = ['month'];
 // ??? l - deprecated
 //--- week: wW ----------------------------------------------------------
 sdfO['w'] = ['week', 0, 0, 1];
-sdfFnSig['w'] = function(d, pat, utc) { // week of year
-	var fw = d.strftime('%W', utc); // %U for sunday based weeks
-	if (pat.length == 1) fw = '' + (+fw); // kill any potential leading zero
-	return fw;
+sdfFnSig['w'] = function weekNumYear(d, pat, utc) { // week of year
+	var firstWeekday = 'sunday', // or monday ? -> locale dependent!
+		weekday = utc ? d.getUTCDay() : d.getDay();
+	// adjust weekday ???
+	if (firstWeekday === 'monday') {
+		if (weekday === 0) // Sunday
+			weekday = 6;
+		else
+			weekday--;
+	}
+
+	var d1 = utc ? new Date(Date.UTC(d.getUTCFullYear(), 0, 1)) : new Date(d.getFullYear(), 0, 1),
+		yday = Math.floor((d - d1) / 86400000),
+		weekNum = (yday + 7 - weekday) / 7;
+	return Math.floor(weekNum);
 };
 sdfFnSig['W'] = function(d, pat, utc) { // week of month - first dirty approx
 	return '?'; // better none than wrong, this needs locale data <- TODO !!!
@@ -372,8 +275,7 @@ sdfO['hour12'] = 'abBhK';
 // and which one don't want one?
 sdfO['no12h'] = 'Hk';
 
-var hasDTF = !!Intl.DateTimeFormat,
-	hasF2P = hasDTF && !!(new Intl.DateTimeFormat())['formatToParts'];
+var hasF2P = !!(new Intl.DateTimeFormat())['formatToParts'];
 
 /**
  * make auto formatter
@@ -381,21 +283,8 @@ var hasDTF = !!Intl.DateTimeFormat,
  * @param {string} pat
  */
 SimpleDateFormat.prototype.makeAF = function(pat) {
-	var f;
-	if (hasDTF) { // create ICU formatter
-		f = this.makeDTF(pat);
-	} else { // make strftime based or special formatter
-		var o = SimpleDateFormat.dtfOptions(pat), fmt;
-		var wantD = o['year'] || o['month'] || o['day'] || o['era'] || o['zone'] || o['week'];
-		var wantT = o['hour'] || o['minute'] || o['second'] || o['period'] || ('hour12' in o);
-		if (wantD) {
-			fmt = wantT ? '%c' : '%D'; // '%F'
-		} else { // no date wanted -> show time
-			fmt = '%r'; // '%T';
-		}
-		f = this.makeSTF(fmt);
-	}
-	return f;
+	// create ICU formatter
+	return this.makeDTF(pat);
 };
 
 /**
@@ -550,8 +439,7 @@ SimpleDateFormat.prototype.getFmtSdf1 = function(pat1) {
  * @returns {dateFmtFn}
  */
 SimpleDateFormat.prototype.getFmt1Fn = function(pat1) {
-	return (hasDTF && this.makeDTF(pat1, 1))
-		|| this.getPatFn(pat1) || this.getFmt1ST(pat1);
+	return this.makeDTF(pat1, 1) || this.getPatFn(pat1);
 };
 
 /**
@@ -581,3 +469,6 @@ SimpleDateFormat.prototype.getPatFn = function(pat1) {
 	}
 	return fn;
 };
+
+// export it
+module.exports = SimpleDateFormat;
