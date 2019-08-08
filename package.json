@@ -1,5 +1,5 @@
 {
-  "name": "simple_dt",
+  "name": "simple_dt.js",
   "version": "0.1.0",
   "description": "Date and time formatting in browser with ICU patterns",
   "main": "index.js",
