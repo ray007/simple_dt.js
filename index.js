@@ -50,7 +50,7 @@ SimpleDateFormat.prototype.getFormatter = function(pat) {
 		if (pat[0] == '#') {
 			f = this.mkPatternFormatter(pat.substr(1));
 		} else { // autoformat -> DateTimeFormat
-			f = this.makeAF(pat);
+			f = this.mkFmtFnDtf(pat);
 		}
 		fnCt[pat] = f;
 	}
@@ -278,23 +278,26 @@ sdfO['no12h'] = 'Hk';
 var hasF2P = !!(new Intl.DateTimeFormat())['formatToParts'];
 
 /**
- * make auto formatter
- * @private
- * @param {string} pat
+ * create instance of Intl.DateTimeFormat for given pattern
+ * @param  {string} pat SDF pattern for formatting
+ * @return {Intl.DateTimeFormat}     [description]
  */
-SimpleDateFormat.prototype.makeAF = function(pat) {
-	// create ICU formatter
-	return this.makeDTF(pat);
+SimpleDateFormat.prototype.getDTF = function(pat) {
+	// prep options
+	var o = SimpleDateFormat.dtfOptions(pat);
+	// prep formatter to work with
+	if (this.utc) o['timeZone'] = 'UTC';
+	return new Intl.DateTimeFormat(this.getLocales(o), o);
 };
 
 /**
- * create instance of Intl.DateTimeFormat for given pattern
+ * create formatting function using an instance of {@see Intl.DateTimeFormat} for given pattern
  * @private
  * @param {string} pat SDF pattern for autoformat
  * @param {?=} [f1=false] truthy: single pattern to generate formatter for?
  * @returns {?dateFmtFn}
  */
-SimpleDateFormat.prototype.makeDTF = function(pat, f1) {
+SimpleDateFormat.prototype.mkFmtFnDtf = function(pat, f1) {
 	// prep options
 	var o = {}, utc = this.utc, sig = pat[0];
 	if (f1) {
@@ -439,7 +442,7 @@ SimpleDateFormat.prototype.getFmtSdf1 = function(pat1) {
  * @returns {dateFmtFn}
  */
 SimpleDateFormat.prototype.getFmt1Fn = function(pat1) {
-	return this.makeDTF(pat1, 1) || this.getPatFn(pat1);
+	return this.mkFmtFnDtf(pat1, 1) || this.getPatFn(pat1);
 };
 
 /**
