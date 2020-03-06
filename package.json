@@ -1,9 +1,11 @@
 {
   "name": "simple_dt.js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Date and time formatting in browser with ICU patterns",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
+    "build": "npx babel src --out-dir dist",
+    "prepare": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -21,5 +23,9 @@
   "bugs": {
     "url": "https://github.com/ray007/simple_dt.js/issues"
   },
-  "homepage": "https://github.com/ray007/simple_dt.js#readme"
+  "homepage": "https://github.com/ray007/simple_dt.js#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.7"
+  }
 }
