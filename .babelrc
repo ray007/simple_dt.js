@@ -1,0 +1,7 @@
+// .babelrc
+{
+    "presets": ["@babel/env"],
+    "sourceMaps": true,
+    "minified": true,
+    "comments": false,
+}

@@ -25,7 +25,9 @@
   },
   "homepage": "https://github.com/ray007/simple_dt.js#readme",
   "devDependencies": {
-    "@babel/cli": "^7.8.4",
-    "@babel/core": "^7.8.7"
+    "@babel/cli": "^7.10.1",
+    "@babel/core": "^7.10.2",
+    "@babel/preset-env": "^7.10.2",
+    "eslint": "^7.1.0"
   }
 }
