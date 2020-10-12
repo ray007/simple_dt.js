@@ -307,10 +307,14 @@ class SimpleDateFormat {
 			if (sig == 'x' || sig == 'X' || (sig == 'Z' && pat.length >= 3))
 				return null;
 			// any preference regarding 12/24 hour clock found?
-			if (sdfO['hour12'].indexOf(sig) >= 0)
-				o['hour12'] = true;
-			else if (sdfO['no12h'].indexOf(sig) >= 0)
-				o['hour12'] = false;
+			if (hasHC && "hHkK".indexOf(sig) >= 0) {
+				o['hourCycle'] = sdfO['hc'][sig];
+			} else {
+				if (sdfO['hour12'].indexOf(sig) >= 0)
+					o['hour12'] = true;
+				else if (sdfO['no12h'].indexOf(sig) >= 0)
+					o['hour12'] = false;
+			}
 			// no period w/o hour
 			if (o['period'] && !o['hour'])
 				o['hour'] = 'numeric';
@@ -331,6 +335,10 @@ class SimpleDateFormat {
 		// eslint-disable-next-line no-cond-assign
 		while (m = oRx.exec(pat)) { // m: [pat1, sig]
 			SimpleDateFormat.sdf2dtfO(m[0], o);
+		}
+		// 'hour12' would overwrite 'hourCycle', remove if both defined
+		if (o['hourCycle'] && 'hour12' in o) {
+			delete o['hour12'];
 		}
 		return o;
 	}
@@ -502,5 +510,9 @@ sdfFnSig['X'] = sdfFnSig['x'] = (d, pat, utc) => {
 sdfO['hour12'] = 'abBhK';
 // and which one don't want one?
 sdfO['no12h'] = 'Hk';
+// hour cycles - K:h11 h:h12 H:h23 k:h24
+sdfO['hc'] = {"K":"h11", "h":"h12", "H":"h23", "k":"h24"};
 
-const hasF2P = !!(new Intl.DateTimeFormat())['formatToParts'];
+let testF = new Intl.DateTimeFormat('en', {'hour':'numeric','hourCycle':'h23'});
+const hasF2P = !!testF['formatToParts'];
+const hasHC = testF.resolvedOptions()['hourCycle'] == 'h23';
