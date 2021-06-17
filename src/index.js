@@ -108,7 +108,7 @@ class SimpleDateFormat {
 					i1 = pat.indexOf("'", i);
 					if (i1 > 0) {
 						fmtParts.push(pat.substring(i, i1));
-						rx.lastIndex = i = i1;
+						rx.lastIndex = i = i1 + 1;
 					}
 				}
 			} else { // a SimpleDateFormat pattern specifier
@@ -375,7 +375,8 @@ const dtfStyles = dtfData.styles = ['numeric', '2-digit', 'short', 'long', 'narr
 sdfO['G'] = ['era', 0, 2];
 // year: yYuUr
 sdfO['y'] = sdfO['Y'] = ['year', function(p) { return (p.length == 2) ? 1 : 0; }];
-// ??? u,U,r - n/a
+sdfO['u'] = sdfO['r'] = ["year"];
+// ??? U: cyclic year name -> n/a
 //--- quarter: Qq -------------------------------------------------------
 sdfFnSig['Q'] = sdfFnSig['q'] = function(d, pat, utc) {
 	var m = utc ? d.getUTCMonth() : d.getMonth(), q = 1 + ~~(m/3), s;
