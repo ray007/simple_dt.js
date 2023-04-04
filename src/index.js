@@ -1,5 +1,5 @@
 /**
- * http://userguide.icu-project.org/formatparse/datetime
+ * https://unicode-org.github.io/icu/userguide/format_parse/datetime/#simpledateformat
  * http://www.unicode.org/reports/tr35/tr35-dates.html#Date_Field_Symbol_Table
  */
 class SimpleDateFormat {
@@ -67,6 +67,16 @@ class SimpleDateFormat {
 		// prep formatter to work with
 		if (this.utc) o['timeZone'] = 'UTC';
 		return new Intl.DateTimeFormat(this.getLocales(o), o);
+	}
+
+	/**
+	 * get integer number formatter for locale
+	 * @private
+	 * @param {number=} digits minimum number of integer digits
+	 * @returns {Intl.NumberFormat}
+	 */
+	getNF(digits = 1) {
+		return new Intl.NumberFormat(this.getLocales(), {minimumIntegerDigits:digits, maximumFractionDigits:0});
 	}
 
 	/**
@@ -221,9 +231,9 @@ class SimpleDateFormat {
 		var fn, dtf = new Intl.DateTimeFormat(this.getLocales(o), o);
 		if (f1) { // not auto-formatting
 			// some formatters need some more work...
-			var dayEraVtz = "vVzGabB".indexOf(sig) >= 0; // day period, era or verbose timezone
+			const dayEraVtz = "vVzGabB".indexOf(sig) >= 0; // day period, era or verbose timezone
 			if (dayEraVtz) {
-				var part = sdfO[sig][0];
+				let part = sdfO[sig][0];
 				if (hasF2P) {
 					if (part == 'period') part = 'dayperiod';
 					/** @this {Intl.DateTimeFormat} */
@@ -241,32 +251,23 @@ class SimpleDateFormat {
 					}.bind(dtf);
 				}
 			} else { // check some numerics: hours, minutes or seconds - or years!
-				var showHours = 'hHkK'.indexOf(sig) >= 0;
+				const showHours = 'hHkK'.indexOf(sig) >= 0;
 				// hour formatters are quite special - move out of here?
 				if (showHours) {
-					var fnGetHours = this.$dpFn.getHours;
+					const fnGetHours = this.$dpFn['getHours'], nf = this.getNF(pat.length);
 					fn = (d) => {
 						var h0 = fnGetHours.call(d);
 						// don't show 0 hours -> 12 or 24
 						if (!h0 && (sig == 'h' || sig == 'k')) h0 = 24;
 						// restrict to 12 hour time
 						if (h0 > 12 && (sig == 'h' || sig == 'K')) h0 -= 12;
-						// ev. pad to 2 digits
-						return (''+h0).padStart(pat.length, '0');
+						// ev. pad / format with script
+						return nf.format(h0);
 					};
 				} else if ('sm'.indexOf(sig) >= 0) {
-					// minutes and seconds should be numbers - check this
-					// internet explorer has a problem with minutes and seconds
-					// see https://github.com/Microsoft/ChakraCore/issues/1223
-					if (isNaN(dtf.format(new Date()))) return null;
-					if (pat.length > 1) {
-						// 2-digit minutes or seconds
-						/** @this {Intl.DateTimeFormat} */
-						fn = function(d) {
-							var v = +this.format(d);
-							return ((v < 10) ? '0' : '') + v;
-						}.bind(dtf);
-					}
+					const getFN = ('m' == sig) ? this.$dpFn['getMinutes'] : this.$dpFn['getSeconds'];
+					const nf = this.getNF(pat.length);
+					fn = (d) => nf.format(getFN.call(d));
 				}
 				else if (pat.length == 5 && (sig == 'y' || sig == 'Y')) {
 					// ??? use NumberFormat if negative years are fixed upstream ???
