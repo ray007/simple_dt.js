@@ -247,12 +247,7 @@ class SimpleDateFormat {
 				let part = sdfO[sig][0];
 				if (hasF2P) {
 					if (part == 'period') part = 'dayperiod';
-					/** @this {Intl.DateTimeFormat} */
-					fn = function(part, d) {
-						var fParts = this.formatToParts(d),
-							r0 = fParts.find((pp) => pp['type'].toLowerCase() == part);
-						return r0 && r0['value'];
-					}.bind(dtf, part);
+					fn = this.findPartFn(dtf, part);
 				} else { // try to extract text from longer string
 					/** @this {Intl.DateTimeFormat} */
 					fn = function(d) {
@@ -283,14 +278,31 @@ class SimpleDateFormat {
 					const mul = +`1e${pat.length-3}`;
 					fn = (d) => nf.format(mul * d.getMilliseconds());
 				}
-				else if (pat.length == 5 && (sig == 'y' || sig == 'Y')) {
-					// ??? use NumberFormat if negative years are fixed upstream ???
-					/** @this {Intl.DateTimeFormat} */
-					fn = function(d) { return this.format(d).padStart(5, '0'); }.bind(dtf);
+				else if (sig == 'y' || sig == 'Y') {
+					fn = this.findPartFn(dtf, 'year'); // TODO: only if format result is more than numeric year
+					if (!isNaN(fn(new Date()))) {
+						const getFN = fn;
+						fn = (d) => nf.format(+getFN(d));
+					}
+					// TODO: else non-latin script, maybe pad at one end?
 				}
 			}
 		}
 		return fn || dtf.format.bind(dtf);
+	}
+
+	/**
+	 * get function retrieving value from parts-formatter
+	 * @private
+	 * @param {Intl.DateTimeFormat} dtf 
+	 * @param {string} part 
+	 * @returns {function(Date):string}
+	 */
+	findPartFn(dtf, part) {
+		return (d) => {
+			const fParts = dtf.formatToParts(d);
+			return fParts.find((pp) => pp['type'].toLowerCase() == part)?.['value'];
+		}
 	}
 
 	/**
