@@ -246,7 +246,7 @@ class SimpleDateFormat {
 			if (dayEraVtz) {
 				let part = sdfO[sig][0];
 				if (hasF2P) {
-					if (part == 'period') part = 'dayperiod';
+					if (part == 'period') part = 'dayPeriod';
 					fn = this.findPartFn(dtf, part);
 				} else { // try to extract text from longer string
 					/** @this {Intl.DateTimeFormat} */
@@ -301,7 +301,7 @@ class SimpleDateFormat {
 	findPartFn(dtf, part) {
 		return (d) => {
 			const fParts = dtf.formatToParts(d);
-			return fParts.find((pp) => pp['type'].toLowerCase() == part)?.['value'];
+			return fParts.find((pp) => pp['type'] == part)?.['value'];
 		}
 	}
 
@@ -330,24 +330,42 @@ class SimpleDateFormat {
 				if (max && idx > max) idx = max;
 			}
 			o[prop] = dtfStyles[idx];
-			// not for iso8601 TZ
-			if (sig == 'x' || sig == 'X' || (sig == 'Z' && pat.length >= 3))
-				return null;
-			if (sig == 'S') {
+
+			switch (sig) {
+			case 'Z':
+				if (pat.length < 3) break;
+			// eslint-disable-next-line no-fallthrough
+			case 'x':
+			case 'X':
+				o[prop] = (pat.length == 1) ? 'shortOffset' : 'longOffset';
+				return null; // not for iso8601 TZ
+
+			case 'z':
+				o[prop] = (pat.length <= 3) ? 'shortGeneric' : 'longGeneric';
+				break;
+			case 'O': // length should be 1 or 4
+				o[prop] = (pat.length <= 3) ? 'shortOffset' : 'longOffset';
+				break;
+
+			case 'S':
 				o[prop] = Math.min(pat.length, 3);
+				break;
+
+			default:
+				// any preference regarding 12/24 hour clock found?
+				if (hasHC && "hHkK".indexOf(sig) >= 0) {
+					o['hourCycle'] = sdfO['hc'][sig];
+				} else {
+					if (sdfO['hour12'].indexOf(sig) >= 0)
+						o['hour12'] = true;
+					else if (sdfO['no12h'].indexOf(sig) >= 0)
+						o['hour12'] = false;
+				}
+				// no period w/o hour
+				if (o['period'] && !o['hour'])
+					o['hour'] = 'numeric';
 			}
-			// any preference regarding 12/24 hour clock found?
-			if (hasHC && "hHkK".indexOf(sig) >= 0) {
-				o['hourCycle'] = sdfO['hc'][sig];
-			} else {
-				if (sdfO['hour12'].indexOf(sig) >= 0)
-					o['hour12'] = true;
-				else if (sdfO['no12h'].indexOf(sig) >= 0)
-					o['hour12'] = false;
-			}
-			// no period w/o hour
-			if (o['period'] && !o['hour'])
-				o['hour'] = 'numeric';
+
 		} else o = null;
 		return o;
 	}
