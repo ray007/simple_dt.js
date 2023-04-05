@@ -76,7 +76,9 @@ class SimpleDateFormat {
 	 * @returns {Intl.NumberFormat}
 	 */
 	getNF(digits = 1) {
-		return new Intl.NumberFormat(this.getLocales(), {minimumIntegerDigits:digits, maximumFractionDigits:0});
+		return new Intl.NumberFormat(this.getLocales(), {
+			minimumIntegerDigits:digits, maximumFractionDigits:0, useGrouping: false
+		});
 	}
 
 	/**
@@ -180,19 +182,28 @@ class SimpleDateFormat {
 		var fn, utc = this.utc, sig = pat1[0];
 		if (pat1.length > 5 && 'eEc'.indexOf(sig) >= 0) {
 			// weekday: 6-len e, E or c
-			var fShort = this.getFmt1Fn(pat1.substr(0,3));
+			const fShort = this.getFmt1Fn(pat1.substr(0,3));
 			if (fShort(new Date()).length > 2) {
 				fn = (d) => fShort(d).substr(0,2);
 			} else {
 				fn = fShort;
 			}
 		} else { // length 1..5 (as usual)
-			var fnSdf = sdfFnPat[pat1];
-			if (fnSdf) {
-				fn = (d) => fnSdf(d, pat1, utc);
+			if (sig == 'A') {
+				const nf = this.getNF(pat1.length);
+				fn = (d) => {
+					var ms = +d;
+					if (utc) ms -= (d.getTimezoneOffset() * 60000); // TZ offset: minutes -> ms
+					return nf.format(ms % 86400000);	
+				}
 			} else {
-				fnSdf = sdfFnSig[sig];
-				fn = fnSdf && ((d) => fnSdf(d, pat1, utc));
+				let fnSdf = sdfFnPat[pat1];
+				if (fnSdf) {
+					fn = (d) => fnSdf(d, pat1, utc);
+				} else {
+					fnSdf = sdfFnSig[sig];
+					fn = fnSdf && ((d) => fnSdf(d, pat1, utc));
+				}
 			}
 		}
 		return fn;
@@ -251,10 +262,10 @@ class SimpleDateFormat {
 					}.bind(dtf);
 				}
 			} else { // check some numerics: hours, minutes or seconds - or years!
-				const showHours = 'hHkK'.indexOf(sig) >= 0;
+				const showHours = 'hHkK'.indexOf(sig) >= 0, $F = this.$dpFn, nf = this.getNF(pat.length);
 				// hour formatters are quite special - move out of here?
 				if (showHours) {
-					const fnGetHours = this.$dpFn['getHours'], nf = this.getNF(pat.length);
+					const fnGetHours = $F['getHours'];
 					fn = (d) => {
 						var h0 = fnGetHours.call(d);
 						// don't show 0 hours -> 12 or 24
@@ -265,9 +276,12 @@ class SimpleDateFormat {
 						return nf.format(h0);
 					};
 				} else if ('sm'.indexOf(sig) >= 0) {
-					const getFN = ('m' == sig) ? this.$dpFn['getMinutes'] : this.$dpFn['getSeconds'];
-					const nf = this.getNF(pat.length);
+					const getFN = ('m' == sig) ? $F['getMinutes'] : $F['getSeconds'];
 					fn = (d) => nf.format(getFN.call(d));
+				}
+				else if (sig == 'S' && pat.length > 3) {
+					const mul = +`1e${pat.length-3}`;
+					fn = (d) => nf.format(mul * d.getMilliseconds());
 				}
 				else if (pat.length == 5 && (sig == 'y' || sig == 'Y')) {
 					// ??? use NumberFormat if negative years are fixed upstream ???
@@ -298,15 +312,18 @@ class SimpleDateFormat {
 			} else {
 				idx = pat.length - 1;
 				if (offset) idx += offset;
-				var min = pDef[2];
+				const min = pDef[2];
 				if (min && idx < min) idx = min;
-				var max = pDef[3];
+				const max = pDef[3];
 				if (max && idx > max) idx = max;
 			}
 			o[prop] = dtfStyles[idx];
 			// not for iso8601 TZ
 			if (sig == 'x' || sig == 'X' || (sig == 'Z' && pat.length >= 3))
 				return null;
+			if (sig == 'S') {
+				o[prop] = Math.min(pat.length, 3);
+			}
 			// any preference regarding 12/24 hour clock found?
 			if (hasHC && "hHkK".indexOf(sig) >= 0) {
 				o['hourCycle'] = sdfO['hc'][sig];
@@ -447,6 +464,7 @@ sdfO['h'] = sdfO['H'] = sdfO['k'] = sdfO['K'] = sdfO['j'] = sdfO['J'] = sdfO['C'
 sdfO['m'] = ['minute', 0, 0, 1];
 //--- second: sSA -------------------------------------------------------
 sdfO['s'] = ['second', 0, 0, 1];
+sdfO['S'] = ['fractionalSecondDigits'];
 // eslint-disable-next-line no-unused-vars
 sdfFnSig['S'] = (d, pat, utc) => { // fractional second
 	var ms1 = 1000 + d.getMilliseconds(), l = pat.length, s0 = '' + ms1;
